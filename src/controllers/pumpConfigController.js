@@ -41,6 +41,7 @@ const addConfiguration = async (req, res) => {
       quantity,
     } = req.body;
     const data = await PumpConfiguration.create({
+      user: req.user._id,
       flowCapacity,
       dischargePressure,
       pumpedLiquid,

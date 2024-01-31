@@ -60,7 +60,7 @@ const pumpConfigurationSchema = new Schema(
       type: String,
     },
     nPumps: {
-      type: Number,
+      type: String,
     },
     inletOutlet: {
       type: String,
