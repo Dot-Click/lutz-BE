@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { mongoose, Schema } = require("mongoose");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
@@ -63,21 +63,6 @@ const userSchema = new Schema({
     type: Boolean,
     default: true,
   },
-  // vendor stripe
-  // TODO encryption
-  stripeAccountId: {
-    type: String,
-  },
-
-  visitedProducts: [
-    {
-      product: { type: Schema.Types.ObjectId, ref: "Product" },
-      timestamp: { type: Date, default: Date.now },
-    },
-  ],
-
-  // new field added
-  profile: { type: Schema.Types.ObjectId, ref: "Profile" },
 });
 
 //hash password before saving
