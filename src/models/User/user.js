@@ -6,7 +6,7 @@ const dotenv = require("dotenv");
 const validator = require("validator");
 dotenv.config({ path: ".././src/config/config.env" });
 const userSchema = new Schema({
-  username: {
+  name: {
     type: String,
     required: true,
   },
@@ -22,13 +22,19 @@ const userSchema = new Schema({
   },
   password: {
     type: String,
-    required: true,
+    select: false,
     //validation will be before saving to db
   },
   role: {
     type: String,
-    enum: ["user", "admin"],
+    enum: ["user", "admin", "vendor"],
     default: "user",
+  },
+
+  provider: {
+    type: String,
+    enum: ["google", "apple", "local"],
+    default: "local",
   },
   createdAt: {
     type: Date,
@@ -57,6 +63,21 @@ const userSchema = new Schema({
     type: Boolean,
     default: true,
   },
+  // vendor stripe
+  // TODO encryption
+  stripeAccountId: {
+    type: String,
+  },
+
+  visitedProducts: [
+    {
+      product: { type: Schema.Types.ObjectId, ref: "Product" },
+      timestamp: { type: Date, default: Date.now },
+    },
+  ],
+
+  // new field added
+  profile: { type: Schema.Types.ObjectId, ref: "Profile" },
 });
 
 //hash password before saving
@@ -77,6 +98,6 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const user = mongoose.model("user", userSchema);
+const user = mongoose.model("User", userSchema);
 
 module.exports = user;

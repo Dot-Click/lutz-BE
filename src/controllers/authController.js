@@ -3,13 +3,11 @@ const sendMail = require("../utils/sendMail");
 const SuccessHandler = require("../utils/SuccessHandler");
 const ErrorHandler = require("../utils/ErrorHandler");
 const validator = require("validator");
-const Wallet = require("../models/Wallet/wallet");
-
 //register
 const register = async (req, res) => {
   // #swagger.tags = ['auth']
   try {
-    const { username, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if (!validator.isEmail(email)) {
       return ErrorHandler("Invalid email format", 400, req, res);
     }
@@ -25,19 +23,15 @@ const register = async (req, res) => {
         res
       );
     }
-    // const user = await User.findOne({ email, username });
-    const user = await User.findOne({ $or: [{ email }, { username }] });
+    const user = await User.findOne({ email });
     if (user) {
-      if (user.username === username) {
-        return ErrorHandler("Username already taken", 400, req, res);
-      } else {
-        return ErrorHandler("User already exists", 400, req, res);
-      }
+      return ErrorHandler("User already exists", 400, req, res);
     }
     const newUser = await User.create({
-      username,
+      name,
       email,
       password,
+      role,
     });
     newUser.save();
     return SuccessHandler("User created successfully", 200, res);
@@ -52,6 +46,9 @@ const requestEmailToken = async (req, res) => {
 
   try {
     const { email } = req.body;
+    if (!validator.isEmail(email)) {
+      return ErrorHandler("Invalid email format", 400, req, res);
+    }
     const user = await User.findOne({ email });
     if (!user) {
       return ErrorHandler("User does not exist", 400, req, res);
@@ -80,6 +77,9 @@ const verifyEmail = async (req, res) => {
 
   try {
     const { email, emailVerificationToken } = req.body;
+    if (!validator.isEmail(email)) {
+      return ErrorHandler("Invalid email format", 400, req, res);
+    }
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({
@@ -110,9 +110,12 @@ const login = async (req, res) => {
 
   try {
     const { email, password } = req.body;
+    if (!validator.isEmail(email)) {
+      return ErrorHandler("Invalid email format", 400, req, res);
+    }
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return ErrorHandler("User does not exist", req, 400, res);
+      return ErrorHandler("User does not exist", 400, req, res);
     }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -122,7 +125,11 @@ const login = async (req, res) => {
       return ErrorHandler("Email not verified", 400, req, res);
     }
     jwtToken = user.getJWTToken();
-    return SuccessHandler("Logged in successfully", 200, res);
+    return SuccessHandler(
+      { message: "Logged in successfully", jwtToken, user },
+      200,
+      res
+    );
   } catch (error) {
     return ErrorHandler(error.message, 500, req, res);
   }
@@ -146,6 +153,9 @@ const forgotPassword = async (req, res) => {
 
   try {
     const { email } = req.body;
+    if (!validator.isEmail(email)) {
+      return ErrorHandler("Invalid email format", 400, req, res);
+    }
     const user = await User.findOne({ email });
     if (!user) {
       return ErrorHandler("User does not exist", 400, req, res);
@@ -155,7 +165,7 @@ const forgotPassword = async (req, res) => {
     user.passwordResetToken = passwordResetToken;
     user.passwordResetTokenExpires = passwordResetTokenExpires;
     await user.save();
-    const message = `Your password reset token is ${resetPasswordToken} and it expires in 10 minutes`;
+    const message = `Your password reset token is ${passwordResetToken} and it expires in 10 minutes`;
     const subject = `Password reset token`;
     await sendMail(email, subject, message);
     return SuccessHandler(`Password reset token sent to ${email}`, 200, res);
@@ -170,6 +180,9 @@ const resetPassword = async (req, res) => {
 
   try {
     const { email, passwordResetToken, password } = req.body;
+    if (!validator.isEmail(email)) {
+      return ErrorHandler("Invalid email format", 400, req, res);
+    }
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return ErrorHandler("User does not exist", 400, req, res);
@@ -230,24 +243,39 @@ const updatePassword = async (req, res) => {
   }
 };
 
-const createWallet = async (req, res) => {
+const socialAuth = async (req, res) => {
+  // #swagger.tags = ['auth']
   try {
-    const { amountInAccount, savingsAmount, cashInHand } = req.body;
-    const data = await Wallet.create({
-      user: req.user._id,
-      amountInAccount,
-      savingsAmount,
-      cashInHand,
-    });
-    await Wallet.findOne(
-      { _id: data._id, user: req.user._id },
-      {
-        $set: {
-          isUsed: true,
-        },
-      }
-    );
-    return SuccessHandler({ message: "Wallet Created", data }, 200, res);
+    const { email, name, role, provider } = req.body;
+
+    const exUser = await User.findOne({ email });
+    if (
+      exUser &&
+      (exUser.provider === "google" || exUser.provider === "apple")
+    ) {
+      const token = await exUser.getJWTToken();
+      return SuccessHandler({ token, user: exUser }, 200, res);
+    } else if (
+      exUser &&
+      exUser.provider !== "google" &&
+      exUser.provider !== "apple"
+    ) {
+      return ErrorHandler(
+        "User exists with different provider. Use the one you used before",
+        400,
+        req,
+        res
+      );
+    } else {
+      const user = await User.create({
+        email,
+        name,
+        role,
+        provider,
+      });
+      const token = await user.getJWTToken();
+      return SuccessHandler({ token, user }, 200, res);
+    }
   } catch (error) {
     return ErrorHandler(error.message, 500, req, res);
   }
@@ -262,5 +290,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   updatePassword,
-  createWallet,
+  socialAuth,
 };

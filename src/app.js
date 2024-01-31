@@ -22,7 +22,7 @@ app.use("/", router);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 
 app.get("/", (req, res) => {
-  res.send("Expense-Tracker-BE1");
+  res.send("Boilerplate-BE");
 });
 
 // send back a 404 error for any unknown api request
