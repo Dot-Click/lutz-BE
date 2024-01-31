@@ -27,15 +27,10 @@ const userSchema = new Schema({
   },
   role: {
     type: String,
-    enum: ["user", "admin", "vendor"],
+    enum: ["user", "admin"],
     default: "user",
   },
 
-  provider: {
-    type: String,
-    enum: ["google", "apple", "local"],
-    default: "local",
-  },
   createdAt: {
     type: Date,
     default: Date.now(),
