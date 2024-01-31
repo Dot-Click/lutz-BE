@@ -1,5 +1,4 @@
 const PumpConfiguration = require("../models/Pump/pumpConfiguration");
-const sendMail = require("../utils/sendMail");
 const SuccessHandler = require("../utils/SuccessHandler");
 const ErrorHandler = require("../utils/ErrorHandler");
 
